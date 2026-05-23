@@ -6,7 +6,7 @@ anywhere on your PC (browsers, editors, PDFs, terminals, etc.).
 ## How it works
 
 1. Select/highlight any text in any application
-2. Press **Ctrl+Shift+C**
+2. Press **Ctrl+C**
 3. The tray icon near your clock updates with the character count
 4. Hover over the icon for a full breakdown (chars, chars with spaces, words)
 5. The icon resets after 10 seconds of inactivity
@@ -37,17 +37,5 @@ python chartray.py
 
 ## How it captures your selection
 
-CharTray simulates Ctrl+C when you press the hotkey. This copies your current
-selection to the clipboard, reads it, counts it, then leaves the clipboard as-is.
-It works in any app that supports standard copy -- browsers, VS Code, Word, Notepad,
-terminals, PDFs in Acrobat, etc.
-
-## Changing the hotkey
-
-Open chartray.py and change the HOTKEY variable at the top:
-
-```python
-HOTKEY = "ctrl+shift+c"   # change this to anything keyboard supports
-```
-
-Then rebuild.
+CharTray monitors the clipboard, reads it, counts it, then leaves the clipboard as-is ***(everything local!)***.
+It works in any app that supports standard copy -- browsers, VS Code, Word, Notepad, terminals, PDFs in Acrobat, etc.
