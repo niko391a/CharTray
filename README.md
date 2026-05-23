@@ -1,4 +1,4 @@
-# CharTray
+# CharTray <img width="40" height="36" alt="Adobe Express - file" src="https://github.com/user-attachments/assets/2b52be81-c8ff-46fc-827f-4da47054f1bf" />
 
 A Windows system tray app that counts characters in any text you select,
 anywhere on your PC (browsers, editors, PDFs, terminals, etc.).
