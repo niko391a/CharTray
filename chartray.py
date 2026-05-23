@@ -1,6 +1,6 @@
 """
 CharTray - System tray character counter
-Press Ctrl+Shift+C anywhere to count characters in your current selection.
+Copy text normally (Ctrl+C) and the tray icon updates automatically.
 The tray icon tooltip shows the live count.
 """
 
@@ -9,13 +9,12 @@ import time
 import sys
 import os
 import pyperclip
-import keyboard
 import pystray
 from PIL import Image, ImageDraw, ImageFont
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
-HOTKEY = "ctrl+shift+c"
+POLL_INTERVAL = 0.3     # seconds between clipboard polls
 ICON_SIZE = 64          # pixels; Windows tray icons are typically 16x16 but PIL scales down
 FONT_SIZE = 34          # font size inside the generated icon image
 RESET_AFTER = 25        # seconds before icon resets to idle state
@@ -90,71 +89,51 @@ class AppState:
             f"CharTray\n"
             f"Chars (no spaces): {self.char_count}\n"
             f"Chars (with spaces): {self.char_count_spaces}\n"
-            f"Words: {self.word_count}\n"
-            f"\nHotkey: {HOTKEY.upper()}"
+            f"Words: {self.word_count}"
         )
 
 
 state = AppState()
 
 
-# ── Hotkey handler ─────────────────────────────────────────────────────────────
+# ── Clipboard monitor ──────────────────────────────────────────────────────────
 
-def on_hotkey():
-    """
-    Called when the user presses the hotkey.
-    Strategy: simulate Ctrl+C to copy the current selection, then read
-    the clipboard. We save and restore whatever was in the clipboard before.
-    """
-    if state.tray is None:
-        return
+def monitor_clipboard():
+    """Poll clipboard and update counts whenever content changes (triggered by Ctrl+C)."""
+    previous = ""
+    while True:
+        try:
+            current = pyperclip.paste()
+        except Exception:
+            time.sleep(POLL_INTERVAL)
+            continue
 
-    # Save previous clipboard content so we don't clobber it permanently
-    try:
-        previous = pyperclip.paste()
-    except Exception:
-        previous = ""
+        if current != previous and current.strip():
+            previous = current
+            if state.tray is not None:
+                state.update_counts(current)
+                state.tray.icon = count_icon(state.char_count_spaces)
+                state.tray.title = state.tooltip()
 
-    # Simulate copy -- this works in browsers, editors, terminals, etc.
-    keyboard.send("ctrl+c")
-    time.sleep(0.15)   # small delay to let the OS process the copy
+                if state._reset_timer:
+                    state._reset_timer.cancel()
+                state._reset_timer = threading.Timer(RESET_AFTER, reset_icon)
+                state._reset_timer.daemon = True
+                state._reset_timer.start()
 
-    try:
-        text = pyperclip.paste()
-    except Exception:
-        state.tray.icon = error_icon()
-        state.tray.title = "CharTray - clipboard error"
-        return
-
-    # If clipboard didn't change, there was likely no selection
-    if text == previous and text == state.last_text:
-        return
-
-    state.update_counts(text)
-
-    # Update the tray icon and tooltip
-    state.tray.icon = count_icon(state.char_count_spaces)
-    state.tray.title = state.tooltip()
-
-    # Schedule a reset back to idle after RESET_AFTER seconds
-    if state._reset_timer:
-        state._reset_timer.cancel()
-    state._reset_timer = threading.Timer(RESET_AFTER, reset_icon)
-    state._reset_timer.daemon = True
-    state._reset_timer.start()
+        time.sleep(POLL_INTERVAL)
 
 
 def reset_icon():
     if state.tray:
         state.tray.icon = idle_icon()
-        state.tray.title = f"CharTray  |  {HOTKEY.upper()} to count selection"
+        state.tray.title = "CharTray  |  Copy text (Ctrl+C) to count"
 
 
 # ── Tray menu ──────────────────────────────────────────────────────────────────
 
 def quit_app(icon, item):
     icon.stop()
-    # keyboard.unhook_all() is called implicitly when the process exits
 
 
 def build_menu():
@@ -163,8 +142,8 @@ def build_menu():
         pystray.Menu.SEPARATOR,
         pystray.MenuItem(
             lambda item: (
-                f"Chars (no spaces): {state.char_count}\n"
-                if state.char_count else "No selection counted yet"
+                f"Chars (no spaces): {state.char_count}"
+                if state.char_count else "No text copied yet"
             ),
             None, enabled=False
         ),
@@ -177,8 +156,6 @@ def build_menu():
             None, enabled=False
         ),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem(f"Hotkey: {HOTKEY.upper()}", None, enabled=False),
-        pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", quit_app),
     )
 
@@ -186,18 +163,18 @@ def build_menu():
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 def main():
-    # Register global hotkey in a background thread
-    keyboard.add_hotkey(HOTKEY, on_hotkey)
+    t = threading.Thread(target=monitor_clipboard, daemon=True)
+    t.start()
 
     icon = pystray.Icon(
         name="CharTray",
         icon=idle_icon(),
-        title=f"CharTray  |  {HOTKEY.upper()} to count selection",
+        title="CharTray  |  Copy text (Ctrl+C) to count",
         menu=build_menu(),
     )
     state.tray = icon
 
-    print(f"CharTray running. Hotkey: {HOTKEY.upper()}  |  Right-click tray icon to quit.")
+    print("CharTray running. Copy any text (Ctrl+C) to count it.  |  Right-click tray icon to quit.")
     icon.run()   # blocks until quit_app() calls icon.stop()
 
 
