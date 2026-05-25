@@ -114,6 +114,7 @@ def monitor_clipboard():
                 state.update_counts(current)
                 state.tray.icon = count_icon(state.char_count_spaces)
                 state.tray.title = state.tooltip()
+                state.tray.update_menu()
 
                 if state._reset_timer:
                     state._reset_timer.cancel()
