@@ -170,7 +170,7 @@ def main():
         name="CharTray",
         icon=idle_icon(),
         title="CharTray  |  Copy text (Ctrl+C) to count",
-        menu=build_menu,
+        menu=build_menu(),
     )
     state.tray = icon
 
