@@ -80,8 +80,9 @@ class AppState:
 
     def update_counts(self, text: str):
         self.last_text = text
-        self.char_count_spaces = len(text)
-        self.char_count = len(text.replace(" ", "").replace("\t", "").replace("\n", ""))
+        normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+        self.char_count_spaces = len(normalized.replace("\n", ""))
+        self.char_count = len(normalized.replace(" ", "").replace("\t", "").replace("\n", ""))
         self.word_count = len(text.split()) if text.strip() else 0
 
     def tooltip(self) -> str:
