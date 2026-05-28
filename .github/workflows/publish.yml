@@ -55,6 +55,7 @@ jobs:
           base-ref: ${{ steps.prev_tag.outputs.tag }}
           head-ref: ${{ github.ref_name }}
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
 
       - name: Download exe artifact
