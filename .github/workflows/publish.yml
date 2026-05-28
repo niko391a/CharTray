@@ -41,23 +41,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get previous tag
-        id: prev_tag
-        run: |
-          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -1)
-          echo "tag=$PREV" >> $GITHUB_OUTPUT
-
-      - name: Generate release notes
-        id: notes
-        if: steps.prev_tag.outputs.tag != ''
-        uses: github/copilot-release-notes@main
-        with:
-          base-ref: ${{ steps.prev_tag.outputs.tag }}
-          head-ref: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-
       - name: Download exe artifact
         uses: actions/download-artifact@v4
         with:
@@ -69,7 +52,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
-          body: ${{ steps.notes.outputs.release-notes }}
-          generate_release_notes: ${{ steps.prev_tag.outputs.tag == '' }}
+          generate_release_notes: true
           files: dist/CharTray.exe
           token: ${{ secrets.GITHUB_TOKEN }}
